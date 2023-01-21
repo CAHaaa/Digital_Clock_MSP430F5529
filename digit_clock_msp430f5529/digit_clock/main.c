@@ -9,13 +9,13 @@
 #define CALADC12_15V_30C *((unsigned int *)0x1A1A) // Temperature Sensor Calibration-30 C
 //See device datasheet for TLV table memory mapping
 #define CALADC12_15V_85C *((unsigned int *)0x1A1C) // Temperature Sensor Calibration-85 C
-//È«¾Ö±äÁ¿
-int tick_count=1;//µ÷ÕûÊ±ÖÓ
-int hour=0;//Ê±·ÖÃë
+//å…¨å±€å˜é‡
+int tick_count=1;//è°ƒæ•´æ—¶é’Ÿ
+int hour=0;//æ—¶åˆ†ç§’
 int min=0;
 int sec=0;
 int temp1,temp2,temp3;
-int date[4]={2023,1,17,2};// year  month day  date£¨week£©
+int date[4]={2023,1,17,2};// year  month day  dateï¼ˆweekï¼‰
 int is_24=1;
 int is_am=1;
 int alarm_cnt=0;
@@ -33,15 +33,14 @@ volatile float temperatureDegC;
 volatile float temperatureDegF;
 int temtemp = 0;
 ////////
-void flash_write_int8(int *ptr, int value);//flashĞ´Èëº¯ÊıÉùÃ÷
-void flash_clr(int *ptr);//flashÇå³ıº¯ÊıÉùÃ÷
-void read_flash_int1(unsigned int addr, int *array, int count);//¶Áflashº¯ÊıÉùÃ÷
+void flash_write_int8(int *ptr, int value);//flashå†™å…¥å‡½æ•°å£°æ˜
+void flash_clr(int *ptr);//flashæ¸…é™¤å‡½æ•°å£°æ˜
+void read_flash_int1(unsigned int addr, int *array, int count);//è¯»flashå‡½æ•°å£°æ˜
 void store_time(void);
 void read_time(void);
 void show_time(void);
 void show_date(void);
 void get_week(int y,int m,int d);
-void store_date(void);
 void read_date(void);
 void set_alarm(int n);
 void show_alarm_select_ui(void);
@@ -52,13 +51,13 @@ int max_day_in_month(int m);
  */
 int main(void)
 {
-    //³õÊ¼»¯
+    //åˆå§‹åŒ–
 	WDTCTL = WDTPW | WDTHOLD;	// stop watchdog timer
-	init_key();//°´¼üÊäÈë³õÊ¼»¯ÉÏÀ­
+	init_key();//æŒ‰é”®è¾“å…¥åˆå§‹åŒ–ä¸Šæ‹‰
 	OLED_Init();
-	P3DIR|=BIT6;//ÒªÇó1£¬ÉÁË¸
+	P3DIR|=BIT6;//è¦æ±‚1ï¼Œé—ªçƒ
 	P3OUT|=BIT6;
-	///////////ÄÖÖÓÉÁË¸ÉèÖÃ
+	///////////é—¹é’Ÿé—ªçƒè®¾ç½®
     P3DIR|=BIT5;
     P3OUT|=BIT5;
     P8DIR|=BIT2;
@@ -68,40 +67,40 @@ int main(void)
     P4DIR|=BIT0;
     P4OUT|=BIT0;
     P8DIR|=BIT1;
-    P8OUT&=~BIT1;//ÄÖÖÓÖ¸Ê¾
+    P8OUT&=~BIT1;//é—¹é’ŸæŒ‡ç¤º
 
 	///////////
-	P1OUT &= ~BIT5;//¼üÅÌ4¸ö°´¼ü¿ØÖÆ³õÊ¼»¯
+	P1OUT &= ~BIT5;//é”®ç›˜4ä¸ªæŒ‰é”®æ§åˆ¶åˆå§‹åŒ–
 	P2OUT &= ~(BIT4+BIT5);
 	P4OUT &= ~BIT3;
 
-	//Ê±ÖÓÓëÖĞ¶ÏÉèÖÃ
+	//æ—¶é’Ÿä¸ä¸­æ–­è®¾ç½®
 	SetClock_MCLK12MHZ_SMCLK12MHZ_ACLK32_768K();
-	UCSCTL5|=DIVS__32;    //Ê¹ÓÃUSCÍ³Ò»Ê±ÖÓÏµÍ³½øĞĞÔ¤·ÖÆµ£¬½«SMCLK½øĞĞ32·ÖÆµ
-	TA0EX0|=TAIDEX_4;    ////A0¼ÆÊıÆ÷·ÖÆµ£¬5·ÖÆµ
-	TA0CTL|= TASSEL_2+ID_2+MC_1+TACLR;    //ÅäÖÃA0¼ÆÊıÆ÷£¬4·ÖÆµ£¬Ê±ÖÓÔ´SMCLK£¬ÉÏÉıÄ£Ê½£¬Í¬Ê±Çå³ı¼ÆÊıÆ÷
-	TA0CCTL0|=CCIE;    //Ê¹ÄÜ¶¨Ê±Æ÷ÖĞ¶Ï£¨CCR0µ¥Ô´ÖĞ¶Ï£©
-	TA0CCR0 = 20000;    //20000  ²¶»ñ±È½Ï¼Ä´æÆ÷0ÉèÖÃÖµÎª9735    Ô­£º38940£º1s    19470
+	UCSCTL5|=DIVS__32;    //ä½¿ç”¨USCç»Ÿä¸€æ—¶é’Ÿç³»ç»Ÿè¿›è¡Œé¢„åˆ†é¢‘ï¼Œå°†SMCLKè¿›è¡Œ32åˆ†é¢‘
+	TA0EX0|=TAIDEX_4;    ////A0è®¡æ•°å™¨åˆ†é¢‘ï¼Œ5åˆ†é¢‘
+	TA0CTL|= TASSEL_2+ID_2+MC_1+TACLR;    //é…ç½®A0è®¡æ•°å™¨ï¼Œ4åˆ†é¢‘ï¼Œæ—¶é’ŸæºSMCLKï¼Œä¸Šå‡æ¨¡å¼ï¼ŒåŒæ—¶æ¸…é™¤è®¡æ•°å™¨
+	TA0CCTL0|=CCIE;    //ä½¿èƒ½å®šæ—¶å™¨ä¸­æ–­ï¼ˆCCR0å•æºä¸­æ–­ï¼‰
+	TA0CCR0 = 20000;    //20000  æ•è·æ¯”è¾ƒå¯„å­˜å™¨0è®¾ç½®å€¼ä¸º9735    åŸï¼š38940ï¼š1s    19470
 	//store_time();
 
-////////////////////////////////////////²âÊÔ
-	REFCTL0 &= ~REFMSTR; // Reset REFMSTR to hand over control to
-	// ADC12_A ref control registers
-	ADC12CTL0 = ADC12SHT0_8 + ADC12REFON + ADC12ON;
-	// ÉèÖÃ²Î¿¼µçÑ¹Îª1.5V£¬´ò¿ªAD
-	ADC12CTL1 = ADC12SHP;           // ²ÉÑù±£³ÖÂö³åÉèÖÃÎªÄÚ²¿¶¨Ê±Æ÷   ²ÉÓÃAclock 12MHz->4MHz
-	ADC12MCTL0 = ADC12SREF_1 + ADC12INCH_10;//ADC12MCTL0 = ADC12SREF_1 + ADC12INCH_10; // ADµÄA10Í¨µÀÁ¬½ÓÖÁÎÂ¶È´«¸ĞÆ÷Êä³ö
-	ADC12IE = 0x001; // ADC_IFG upon conv resultADCMEMO
-	__delay_cycles(100);
-	ADC12CTL0 |= ADC12ENC; // Ê¹ÄÜAD
+////////////////////////////////////////æµ‹è¯•
+// 	REFCTL0 &= ~REFMSTR; // Reset REFMSTR to hand over control to
+// 	// ADC12_A ref control registers
+// 	ADC12CTL0 = ADC12SHT0_8 + ADC12REFON + ADC12ON;
+// 	// è®¾ç½®å‚è€ƒç”µå‹ä¸º1.5Vï¼Œæ‰“å¼€AD
+// 	ADC12CTL1 = ADC12SHP;           // é‡‡æ ·ä¿æŒè„‰å†²è®¾ç½®ä¸ºå†…éƒ¨å®šæ—¶å™¨   é‡‡ç”¨Aclock 12MHz->4MHz
+// 	ADC12MCTL0 = ADC12SREF_1 + ADC12INCH_10;//ADC12MCTL0 = ADC12SREF_1 + ADC12INCH_10; // ADçš„A10é€šé“è¿æ¥è‡³æ¸©åº¦ä¼ æ„Ÿå™¨è¾“å‡º
+// 	ADC12IE = 0x001; // ADC_IFG upon conv resultADCMEMO
+// 	__delay_cycles(100);
+// 	ADC12CTL0 |= ADC12ENC; // ä½¿èƒ½AD
 //////////////////////////////////////
 
-	read_time();//¿ªÊ¼Ö®Ç°ÏÈ¶ÁÈëÉÏ´ÎµÄÊ±¼ä
+	read_time();//å¼€å§‹ä¹‹å‰å…ˆè¯»å…¥ä¸Šæ¬¡çš„æ—¶é—´
 	read_date();
 	get_week(date[0],date[1],date[2]);
 	show_date();
-	__bis_SR_register(GIE);//Ê¹ÄÜÈ«¾ÖÖĞ¶Ï
-	//Ö÷Ñ­»·
+	__bis_SR_register(GIE);//ä½¿èƒ½å…¨å±€ä¸­æ–­
+	//ä¸»å¾ªç¯
 	while(1){
 	    show_time();
 	    show_date();
@@ -114,38 +113,38 @@ int main(void)
 	       // __delay_cycles(1000000000);
 	        //beep=0;
 	    }
-	    __bis_SR_register(GIE);//Ê¹ÄÜÈ«¾ÖÖĞ¶Ï
+	    __bis_SR_register(GIE);//ä½¿èƒ½å…¨å±€ä¸­æ–­
 
-	    /////////////////////////////////////////////////²âÊÔ
-	    ADC12CTL0 &= ~ADC12SC;
-	    ADC12CTL0 |= ADC12SC; // ¿ªÊ¼²ÉÑù
-	    __bis_SR_register(LPM4_bits); // LPM0 with interrupts enabled
-	    __no_operation();
+	    /////////////////////////////////////////////////æµ‹è¯•
+// 	    ADC12CTL0 &= ~ADC12SC;
+// 	    ADC12CTL0 |= ADC12SC; // å¼€å§‹é‡‡æ ·
+// 	    __bis_SR_register(LPM4_bits); // LPM0 with interrupts enabled
+// 	    __no_operation();
 	    // Temperature in Celsius. See the Device Descriptor Table section in the
 	    // System Resets, Interrupts, and Operating Modes, System Control Module
 	    // chapter in the device user's guide for background information on the
 	    // used formula.
-	    temperatureDegC = (float)(((long)temp - CALADC12_15V_30C) * (85 - 30)) /(CALADC12_15V_85C - CALADC12_15V_30C) + 30.0f; //ÉãÊÏ¶È»»Ëã
-	    temtemp = temperatureDegC*100;
-	    OLED_ShowString(1,4,"Temp=");
-	    OLED_ShowString(57,4,".");
-	    OLED_ShowNum(41,4,temtemp/100,2,16);
-	    OLED_ShowNum(65,4,temtemp%100,2,16); //ÎÂ¶ÈÏÔÊ¾
-	    // Temperature in Fahrenheit Tf = (9/5)*Tc + 32
-	    temperatureDegF = temperatureDegC * 9.0f / 5.0f + 32.0f;//»ªÊÏ¶È»»Ëã
-	    __delay_cycles(6000000);
+// 	    temperatureDegC = (float)(((long)temp - CALADC12_15V_30C) * (85 - 30)) /(CALADC12_15V_85C - CALADC12_15V_30C) + 30.0f; //æ‘„æ°åº¦æ¢ç®—
+// 	    temtemp = temperatureDegC*100;
+// 	    OLED_ShowString(1,4,"Temp=");
+// 	    OLED_ShowString(57,4,".");
+// 	    OLED_ShowNum(41,4,temtemp/100,2,16);
+// 	    OLED_ShowNum(65,4,temtemp%100,2,16); //æ¸©åº¦æ˜¾ç¤º
+// 	    // Temperature in Fahrenheit Tf = (9/5)*Tc + 32
+// 	    temperatureDegF = temperatureDegC * 9.0f / 5.0f + 32.0f;//åæ°åº¦æ¢ç®—
+// 	    __delay_cycles(6000000);
 	    ///////////////////////////////////////////////////
 
-	    /////////////////////////////////////////////////¼ÆÊ±Æ÷Ä£Ê½
+	    /////////////////////////////////////////////////è®¡æ—¶å™¨æ¨¡å¼
 
 	    ////////////////////////////////////////////////mode1
-	    if(AP){//ÉèÖÃÊ±¼äÄ£Ê½
+	    if(AP){//è®¾ç½®æ—¶é—´æ¨¡å¼
 	        __delay_cycles(10000000);
 	        while(1){
 	            _DINT();
 	            if(AP){
 	                __delay_cycles(10000000);
-	                break;//°´AÍË³ö
+	                break;//æŒ‰Aé€€å‡º
 
 	            }
 	            else if(ONE){
@@ -177,7 +176,7 @@ int main(void)
 	               P8OUT^=BIT1;
 
 	           }
-	    ////////////////////mode2ÈÕÆÚÉèÖÃ///////////
+	    ////////////////////mode2æ—¥æœŸè®¾ç½®///////////
 	    else if(THREE){
 	        __delay_cycles(10000000);
 	        while(1){
@@ -185,7 +184,7 @@ int main(void)
 	            //_DINT();
 	            if(AP){
 	                __delay_cycles(10000000);
-	                break;//°´AÍË³ö
+	                break;//æŒ‰Aé€€å‡º
 	            }
 	            else if(TWO&&ONE){
 	                __delay_cycles(10000000);
@@ -217,7 +216,7 @@ int main(void)
 	        }
 	    }
 
-	    ///////////////////12/24Ğ¡Ê±ÖÆÇĞ»»¹¦ÄÜ
+	    ///////////////////12/24å°æ—¶åˆ¶åˆ‡æ¢åŠŸèƒ½
 	    else if(TWO){
 	        _DINT();
 	        __delay_cycles(10000000);
@@ -244,7 +243,7 @@ int main(void)
 	        }
 	        _EINT();
 	    }
-/////////////////////////////ÄÖÖÓ¹¦ÄÜ
+/////////////////////////////é—¹é’ŸåŠŸèƒ½
 	    else if(ONE){
 	        _DINT();
 	        __delay_cycles(30000000);
@@ -260,10 +259,10 @@ int main(void)
                         OLED_Clear();
                         break;
                     }
-                    if(ONE){//¿ªÊ¼¼ÆÊ±
+                    if(ONE){//å¼€å§‹è®¡æ—¶
                         start_timer=1;
                     }
-                    if(TWO){//ÔİÍ£
+                    if(TWO){//æš‚åœ
                         start_timer=0;
                     }
                     if(THREE){//reset
@@ -279,9 +278,9 @@ int main(void)
 
 	            if(AP){
 	                __delay_cycles(10000000);
-	                break;//°´AÍË³ö
+	                break;//æŒ‰Aé€€å‡º
 	            }
-	            if(ONE){//µÚÒ»¸öÄÖÖÓÉèÖÃ
+	            if(ONE){//ç¬¬ä¸€ä¸ªé—¹é’Ÿè®¾ç½®
 	                set_alarm(0);
 	            }
 	            if(TWO){//2
@@ -298,36 +297,36 @@ int main(void)
 	return 0;
 }
 
-//ÖĞ¶Ï·şÎñº¯Êı
-#pragma vector=ADC12_VECTOR
-__interrupt void ADC12ISR (void)
-{
-switch(__even_in_range(ADC12IV,34))
-{
-case 0: break; // Vector 0: No interrupt
-case 2: break; // Vector 2: ADC overflow
-case 4: break; // Vector 4: ADC timing overflow
-case 6: // Vector 6: ADC12IFG0
-temp = ADC12MEM0; // ¶ÁÈ¡½á¹û£¬ÖĞ¶Ï±êÖ¾ÒÑ±»Çå³ı
-__bic_SR_register_on_exit(LPM4_bits); // Exit active CPU
-case 8: break; // Vector 8: ADC12IFG1
-case 10: break; // Vector 10: ADC12IFG2
-case 12: break; // Vector 12: ADC12IFG3
-case 14: break; // Vector 14: ADC12IFG4
-case 16: break; // Vector 16: ADC12IFG5
-case 18: break; // Vector 18: ADC12IFG6
-case 20: break; // Vector 20: ADC12IFG7
-case 22: break; // Vector 22: ADC12IFG8
-case 24: break; // Vector 24: ADC12IFG9
-case 26: break; // Vector 26: ADC12IFG10
-case 28: break; // Vector 28: ADC12IFG11
-case 30: break; // Vector 30: ADC12IFG12
-case 32: break; // Vector 32: ADC12IFG13
-case 34: break; // Vector 34: ADC12IFG14
-default: break;
-}
-}
-#pragma vector = TIMER0_A0_VECTOR//TA0CCR0ÖĞ¶Ï·şÎñº¯Êı
+//ä¸­æ–­æœåŠ¡å‡½æ•°
+// #pragma vector=ADC12_VECTOR
+// __interrupt void ADC12ISR (void)
+// {
+// switch(__even_in_range(ADC12IV,34))
+// {
+// case 0: break; // Vector 0: No interrupt
+// case 2: break; // Vector 2: ADC overflow
+// case 4: break; // Vector 4: ADC timing overflow
+// case 6: // Vector 6: ADC12IFG0
+// temp = ADC12MEM0; // è¯»å–ç»“æœï¼Œä¸­æ–­æ ‡å¿—å·²è¢«æ¸…é™¤
+// __bic_SR_register_on_exit(LPM4_bits); // Exit active CPU
+// case 8: break; // Vector 8: ADC12IFG1
+// case 10: break; // Vector 10: ADC12IFG2
+// case 12: break; // Vector 12: ADC12IFG3
+// case 14: break; // Vector 14: ADC12IFG4
+// case 16: break; // Vector 16: ADC12IFG5
+// case 18: break; // Vector 18: ADC12IFG6
+// case 20: break; // Vector 20: ADC12IFG7
+// case 22: break; // Vector 22: ADC12IFG8
+// case 24: break; // Vector 24: ADC12IFG9
+// case 26: break; // Vector 26: ADC12IFG10
+// case 28: break; // Vector 28: ADC12IFG11
+// case 30: break; // Vector 30: ADC12IFG12
+// case 32: break; // Vector 32: ADC12IFG13
+// case 34: break; // Vector 34: ADC12IFG14
+// default: break;
+// }
+// }
+#pragma vector = TIMER0_A0_VECTOR//TA0CCR0ä¸­æ–­æœåŠ¡å‡½æ•°
 __interrupt void TIMER0_A0_ISR(void)
 {
 
@@ -345,10 +344,10 @@ __interrupt void TIMER0_A0_ISR(void)
         else alarm_time_count--;
     }
         if(tick_count==0){
-            //ÉÁË¸
+            //é—ªçƒ
             P3OUT^=(BIT6);
             if(start_timer==1)timer_second++;
-            //Ê±·ÖÃë¿ØÖÆ
+            //æ—¶åˆ†ç§’æ§åˆ¶
             sec++;
             if(sec==60){
                 sec=0;
@@ -373,7 +372,7 @@ __interrupt void TIMER0_A0_ISR(void)
             }
 
 
-            //¶¨Ê±¿ØÖÆ¹éÎ»
+            //å®šæ—¶æ§åˆ¶å½’ä½
             tick_count=1;
         }
         else{
@@ -391,16 +390,16 @@ __interrupt void TIMER0_A0_ISR(void)
 void flash_write_int8(int *ptr, int value)
 {
      _DINT();
-     FCTL3 = 0x0A500;          // Lock = 0 ¿ªËø
-     FCTL1 = 0x0A540;          // Write = 1Ê¹ÄÜĞ´Èë
-    *((int *) ptr) = value;       // Ğ´ÈëÊı¾İ
+     FCTL3 = 0x0A500;          // Lock = 0 å¼€é”
+     FCTL1 = 0x0A540;          // Write = 1ä½¿èƒ½å†™å…¥
+    *((int *) ptr) = value;       // å†™å…¥æ•°æ®
 }
 void flash_clr(int *ptr)
 {
-    _DINT();                            //¹ØÖĞ¶Ï
-    FCTL3 = 0x0A500;              //* Lock = 0 ¿ªËø
-    FCTL1 = 0x0A502;              //* Erase = 1 Ê¹ÄÜ²Á³ı
-    *((int *) ptr) = 0;           //* ²Á³ı¶Î
+    _DINT();                            //å…³ä¸­æ–­
+    FCTL3 = 0x0A500;              //* Lock = 0 å¼€é”
+    FCTL1 = 0x0A502;              //* Erase = 1 ä½¿èƒ½æ“¦é™¤
+    *((int *) ptr) = 0;           //* æ“¦é™¤æ®µ
 }
 void read_flash_int1(unsigned int addr, int *array, int count)
 {
@@ -464,7 +463,7 @@ void get_week(int y,int m,int d){
     }
     int c=y/100;
     y=y%100;
-    date[3]=(y+y/4+c/4-2*c+26*(m+1)/10+d-1)%7;////w=y+[y/4]+[c/4]-2c+[26(m+1£©/10]+d-1
+    date[3]=(y+y/4+c/4-2*c+26*(m+1)/10+d-1)%7;////w=y+[y/4]+[c/4]-2c+[26(m+1ï¼‰/10]+d-1
     if(date[3]==0)date[3]=7;
 }
 
@@ -486,12 +485,6 @@ int max_day_in_month(int m){
     case 12:cnt=31;break;
     }
     return cnt;
-}
-void store_date(void){
-    flash_clr((int*)0x0019A2);
-    flash_write_int8((int*)0x0019A2,0x0001);
-    flash_write_int8((int*)0x0019A4,5);
-    flash_write_int8((int*)0x0019A6,5);
 }
 void read_date(void){
     read_flash_int1(0x0018A0,&date[0],1);
